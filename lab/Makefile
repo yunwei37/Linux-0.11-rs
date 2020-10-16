@@ -1,7 +1,9 @@
-TARGET      := riscv64imac-unknown-none-elf
+ARCH  		:= riscv64
+TARGET      := $(ARCH)imac-unknown-none-elf
 MODE        := debug
 KERNEL_FILE := target/$(TARGET)/$(MODE)/lab
-BIN_FILE    := Image
+BOOT  		:= boot/$(ARCH)
+BIN_FILE    := $(BOOT)/Image
 
 QEMU_BINARY := qemu-system-riscv64
 QEMUOPTS	:= -nographic -machine virt -bios none -device loader,file=$(BIN_FILE),addr=0x80000000
@@ -9,9 +11,13 @@ QEMUOPTS	:= -nographic -machine virt -bios none -device loader,file=$(BIN_FILE),
 kernel:
 	@cargo build
 
-build: kernel
+build: kernel boot
 	@rust-objcopy --binary-architecture=riscv64 $(KERNEL_FILE) --strip-all -O binary $(BIN_FILE)
-	cp $(KERNEL_FILE) vmlinux
+	@cp $(KERNEL_FILE) vmlinux
+
+boot:
+	@mkdir boot
+	@mkdir $(BOOT)
 
 qemu: build
 	@$(QEMU_BINARY) $(QEMUOPTS)
@@ -23,5 +29,5 @@ run: build qemu
 
 clean:
 	@cargo clean
-	@rm Image
+	@rm -rf boot
 	@rm vmlinux

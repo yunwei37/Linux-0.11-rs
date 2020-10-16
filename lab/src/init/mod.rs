@@ -1,6 +1,6 @@
 use core::panic::PanicInfo;
 
-global_asm!(include_str!("../arch/riscv/head.S"));
+global_asm!(include_str!("../arch/riscv/kernel/head.S"));
 
 #[no_mangle]
 pub extern "C" fn start_kernel() -> ! {
