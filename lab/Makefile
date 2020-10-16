@@ -11,6 +11,7 @@ kernel:
 
 build: kernel
 	@rust-objcopy --binary-architecture=riscv64 $(KERNEL_FILE) --strip-all -O binary $(BIN_FILE)
+	cp $(KERNEL_FILE) vmlinux
 
 qemu: build
 	@$(QEMU_BINARY) $(QEMUOPTS)
@@ -23,3 +24,4 @@ run: build qemu
 clean:
 	@cargo clean
 	@rm Image
+	@rm vmlinux

@@ -3,5 +3,5 @@ target = "riscv64imac-unknown-none-elf"
 
 [target.riscv64imac-unknown-none-elf]
 rustflags = [
-    "-C", "link-arg=-Tsrc/vmlinux.lds",
+    "-C", "link-arg=-Tsrc/arch/riscv/vmlinux.lds",
 ]
