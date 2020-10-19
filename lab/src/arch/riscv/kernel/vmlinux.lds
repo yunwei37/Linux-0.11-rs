@@ -4,6 +4,7 @@ SECTIONS
 {   
     . = BASE_ADDRESS;
     .text : {
+        *(.text.init)
         *(.text.entry)
         *(.text .text.*)
     }

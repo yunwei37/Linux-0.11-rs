@@ -6,3 +6,4 @@
 #![feature(fmt_as_str)]
 
 mod init;
+mod lib;

@@ -1,3 +1,4 @@
 lab/target
 lab/boot
 lab/vmlinux
+lab/kernel.asm
