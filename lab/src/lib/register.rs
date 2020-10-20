@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 pub const MSTATUS_MPP_MASK: u64 = 6144;
 pub const MSTATUS_MPP_M: u64 = 6144;
 pub const MSTATUS_MPP_S: u64 = 2048;
@@ -41,13 +40,6 @@ pub fn w_mstatus(x: u64) {
 }
 
 #[inline]
-pub fn w_mepc(x: u64) {
-    unsafe {
-        llvm_asm!("csrw mepc, $0" : : "r" (x));
-    }
-}
-
-#[inline]
 pub fn w_satp(x: u64) {
     unsafe {
         llvm_asm!("csrw satp, $0" : : "r" (x));
@@ -67,6 +59,22 @@ pub fn r_medeleg() -> u64 {
 pub fn w_medeleg(x: u64) {
     unsafe {
         llvm_asm!("csrw medeleg, $0" : : "r" (x));
+    }
+}
+
+#[inline]
+pub fn r_mepc() -> u64 {
+    let mut x: u64;
+    unsafe {
+        llvm_asm!("csrr $0, mepc" : "=r" (x));
+    }
+    x
+}
+
+#[inline]
+pub fn w_mepc(x: u64) {
+    unsafe {
+        llvm_asm!("csrw mepc, $0" : : "r" (x));
     }
 }
 
@@ -103,6 +111,24 @@ pub fn r_sie() -> u64 {
 pub fn w_sie(x: u64) {
     unsafe {
         llvm_asm!("csrw sie, $0" : : "r" (x));
+    }
+}
+
+pub const MIP_STIP: u64 = 32;
+
+#[inline]
+pub fn r_mip() -> u64 {
+    let mut x: u64;
+    unsafe {
+        llvm_asm!("csrr $0, mip" : "=r" (x));
+    }
+    x
+}
+
+#[inline]
+pub fn w_mip(x: u64) {
+    unsafe {
+        llvm_asm!("csrw mip, $0" : : "r" (x));
     }
 }
 
@@ -152,6 +178,15 @@ pub fn r_scause() -> u64 {
     let mut x: u64;
     unsafe {
         llvm_asm!("csrr $0, scause" : "=r" (x));
+    }
+    x
+}
+
+#[inline]
+pub fn r_mcause() -> u64 {
+    let mut x: u64;
+    unsafe {
+        llvm_asm!("csrr $0, mcause" : "=r" (x));
     }
     x
 }

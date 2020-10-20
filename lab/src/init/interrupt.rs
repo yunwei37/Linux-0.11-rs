@@ -1,5 +1,3 @@
-use super::register::*;
-use super::start_kernel;
 use crate::lib::*;
 
 global_asm!(include_str!("../arch/riscv/kernel/head.S"));
@@ -9,63 +7,54 @@ extern "C" {
     fn kernelvec();
 }
 
-#[no_mangle]
-pub extern "C" fn mmod_init() {
-    let mut x = r_mstatus();
-    x = x & (!MSTATUS_MPP_MASK);
-    x |= MSTATUS_MPP_S;
-    w_mstatus(x);
-
-    w_mepc(start_kernel as u64);
-
-    w_satp(0);
-
-    w_medeleg(0xffff);
-    w_mideleg(0xffff);
-    w_sie(r_sie() | SIE_SEIE | SIE_SSIE);
-
-    timer_init();
-
-    unsafe {
-        llvm_asm!("mret");
-    }
-}
-
 global_asm!(include_str!("../arch/riscv/kernel/entry.S"));
-
-const CLINT_MTIME: u64 = 0x200bff8;
-const CLINT_MTIMECMP: u64 = 0x2004000;
-
-const INTERVAL: u64 = 10000000;
 
 pub static mut TICKS: usize = 0;
 
-fn timer_init() {
+pub fn timer_init() {
     set_next_timeout();
-
     w_mtvec(timervec as u64);
-
     w_mstatus(r_mstatus() | MSTATUS_MIE);
-    w_mie(r_mie() | MIE_MTIE);
 }
 
-#[no_mangle]
-pub extern "C" fn set_next_timeout() {
+fn set_next_timeout() {
+    const CLINT_MTIME: u64 = 0x200bff8;
+    const CLINT_MTIMECMP: u64 = 0x2004000;
+    const INTERVAL: u64 = 10000000;
     unsafe {
         *(CLINT_MTIMECMP as *mut u64) = *(CLINT_MTIME as *const u64) + INTERVAL;
     }
 }
 
 #[no_mangle]
-pub extern "C" fn kerneltrap() {
+pub extern "C" fn machine_trap_handler() {
+    let mcause = r_mcause();
+    const M_TIMER_INTERRUPT: u64 = (1 << 63) | 7;
+    const S_ECALL: u64 = 9;
+    if mcause == M_TIMER_INTERRUPT {
+        w_mip(r_mip() | MIP_STIP);
+        w_sie(r_sie() | SIE_STIE);
+        w_mie(r_mie() & !MIE_MTIE);
+    } else if mcause == S_ECALL {
+        set_next_timeout();
+        w_mie(r_mie() | MIE_MTIE);
+        w_mepc(r_mepc() + 4);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn supervisor_trap_handler() {
     let scause = r_scause();
-    if scause == ((1 << 63) | 5) {
+    const S_TIMER_INTERRUPT: u64 = (1 << 63) | 5;
+    if scause == S_TIMER_INTERRUPT {
         unsafe {
+            println!("[S] Supervisor Mode Timer Interrupt {}", TICKS);
             TICKS += 1;
-            put_chars("trap\n");
-            if TICKS >= 5 {
+            if TICKS >= 10 {
                 shut_down();
             }
+            w_sie(r_sie() & !SIE_STIE);
+            llvm_asm!("ecall");
         }
     }
 }

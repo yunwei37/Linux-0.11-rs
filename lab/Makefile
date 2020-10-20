@@ -18,13 +18,11 @@ kernel:
 build: kernel boot
 	@$(OBJCOPY) $(KERNEL_FILE) --strip-all -O binary $(BIN_FILE)
 	@cp $(KERNEL_FILE) vmlinux
+	@$(OBJDUMP) -d $(KERNEL_FILE) > $(ASM_FILE)
 
 boot:
 	@mkdir boot
 	@mkdir $(BOOT)
-
-asm: build
-	@$(OBJDUMP) -d $(KERNEL_FILE) > $(ASM_FILE)
 
 qemu: build
 	@$(QEMU_BINARY) $(QEMUOPTS)
@@ -40,5 +38,5 @@ gdb: build
 clean:
 	@cargo clean
 	@rm -rf boot
-	@rm vmlinux
-	@rm $(ASM_FILE)
+	@rm -f vmlinux
+	@rm -f $(ASM_FILE)

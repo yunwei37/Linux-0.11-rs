@@ -5,5 +5,6 @@
 #![feature(panic_info_message)]
 #![feature(fmt_as_str)]
 
-mod init;
+#[macro_use]
 mod lib;
+mod init;
