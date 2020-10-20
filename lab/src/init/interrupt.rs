@@ -2,9 +2,16 @@ use crate::lib::*;
 
 global_asm!(include_str!("../arch/riscv/kernel/head.S"));
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Context {
+    pub status: u64,
+    pub epc: u64,
+}
+
 extern "C" {
-    fn timervec();
-    fn kernelvec();
+    fn trap_m();
+    fn trap_s();
 }
 
 global_asm!(include_str!("../arch/riscv/kernel/entry.S"));
@@ -13,7 +20,7 @@ pub static mut TICKS: usize = 0;
 
 pub fn timer_init() {
     set_next_timeout();
-    w_mtvec(timervec as u64);
+    w_mtvec(trap_m as u64);
     w_mstatus(r_mstatus() | MSTATUS_MIE);
 }
 
@@ -27,7 +34,7 @@ fn set_next_timeout() {
 }
 
 #[no_mangle]
-pub extern "C" fn machine_trap_handler() {
+pub extern "C" fn machine_trap_handler(context: &mut Context) {
     let mcause = r_mcause();
     const M_TIMER_INTERRUPT: u64 = (1 << 63) | 7;
     const S_ECALL: u64 = 9;
@@ -38,12 +45,12 @@ pub extern "C" fn machine_trap_handler() {
     } else if mcause == S_ECALL {
         set_next_timeout();
         w_mie(r_mie() | MIE_MTIE);
-        w_mepc(r_mepc() + 4);
+        context.epc += 4;
     }
 }
 
 #[no_mangle]
-pub extern "C" fn supervisor_trap_handler() {
+pub extern "C" fn supervisor_trap_handler(_context: &mut Context) {
     let scause = r_scause();
     const S_TIMER_INTERRUPT: u64 = (1 << 63) | 5;
     if scause == S_TIMER_INTERRUPT {
@@ -60,6 +67,6 @@ pub extern "C" fn supervisor_trap_handler() {
 }
 
 pub fn trap_init() {
-    w_stvec(kernelvec as u64);
+    w_stvec(trap_s as u64);
     w_sstatus(r_sstatus() | SSTATUS_SIE);
 }

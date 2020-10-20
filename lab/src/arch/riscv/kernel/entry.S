@@ -1,9 +1,9 @@
 .section .text.entry
 .globl kerneltrap
-.globl kernelvec
+.globl trap_s
 .align 4
-kernelvec:
-        addi sp, sp, -256
+trap_s:
+        addi sp, sp, -272
 
         # save the registers.
         sd ra, 0(sp)
@@ -38,7 +38,20 @@ kernelvec:
         sd t5, 232(sp)
         sd t6, 240(sp)
 
+        csrr t0, sstatus
+        csrr t1, sepc
+        sd t0,  248(sp)
+        sd t1,  256(sp)
+
+        mv      a0, sp
+        addi    a0, a0, 248
+
         call supervisor_trap_handler
+
+        ld t0,  248(sp)
+        ld t1,  256(sp)
+        csrw sstatus, t0
+        csrw sepc, t1
         
         # restore registers.
         ld ra, 0(sp)
@@ -72,14 +85,14 @@ kernelvec:
         ld t5, 232(sp)
         ld t6, 240(sp)
 
-        addi sp, sp, 256
+        addi sp, sp, 272
 
         sret
 
-.globl timervec
+.globl trap_m
 .align 4
-timervec:
-        addi sp, sp, -256
+trap_m:
+        addi sp, sp, -272
 
         # save the registers.
         sd ra, 0(sp)
@@ -114,7 +127,20 @@ timervec:
         sd t5, 232(sp)
         sd t6, 240(sp)
 
+        csrr t0, mstatus
+        csrr t1, mepc
+        sd t0,  248(sp)
+        sd t1,  256(sp)
+
+        mv      a0, sp
+        addi    a0, a0, 248
+
         call machine_trap_handler
+
+        ld t0,  248(sp)
+        ld t1,  256(sp)
+        csrw mstatus, t0
+        csrw mepc, t1
 
         # restore registers.
         ld ra, 0(sp)
@@ -148,6 +174,6 @@ timervec:
         ld t5, 232(sp)
         ld t6, 240(sp)
 
-        addi sp, sp, 256
+        addi sp, sp, 272
 
         mret

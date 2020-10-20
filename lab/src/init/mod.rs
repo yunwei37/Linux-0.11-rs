@@ -3,6 +3,11 @@ mod interrupt;
 use crate::lib::*;
 use interrupt::timer_init;
 
+extern {
+    static bss_start:usize;
+    static bss_end:usize;
+}
+
 #[no_mangle]
 pub extern "C" fn mmod_init() {
     let mut x = r_mstatus();
@@ -23,6 +28,9 @@ pub extern "C" fn mmod_init() {
     timer_init();
 
     unsafe {
+        for bit in bss_start..bss_end {
+            *(bit as * mut u8) = 0;
+        }
         llvm_asm!("mret");
     }
 }
