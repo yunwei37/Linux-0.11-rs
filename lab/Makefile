@@ -12,8 +12,10 @@ QEMUOPTS	:= -nographic -machine virt -bios none -device loader,file=$(BIN_FILE),
 OBJDUMP     := rust-objdump --arch-name=riscv64
 OBJCOPY     := rust-objcopy --binary-architecture=riscv64
 
+SCHED		:= short_job_first
+
 kernel:
-	@cargo build
+	@cargo build --features $(SCHED)
 
 build: kernel boot
 	@$(OBJCOPY) $(KERNEL_FILE) --strip-all -O binary $(BIN_FILE)

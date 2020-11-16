@@ -1,3 +1,4 @@
+use super::sched::*;
 use crate::lib::*;
 
 global_asm!(include_str!("../arch/riscv/kernel/head.S"));
@@ -5,6 +6,7 @@ global_asm!(include_str!("../arch/riscv/kernel/head.S"));
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Context {
+    pub regs: thread_struct,
     pub status: u64,
     pub epc: u64,
 }
@@ -36,6 +38,7 @@ fn set_next_timeout() {
 #[no_mangle]
 pub extern "C" fn machine_trap_handler(context: &mut Context) {
     let mcause = r_mcause();
+    //println!("machine_trap_handler {} epc {:x}", mcause, context.epc);
     const M_TIMER_INTERRUPT: u64 = (1 << 63) | 7;
     const S_ECALL: u64 = 9;
     if mcause == M_TIMER_INTERRUPT {
@@ -46,23 +49,28 @@ pub extern "C" fn machine_trap_handler(context: &mut Context) {
         set_next_timeout();
         w_mie(r_mie() | MIE_MTIE);
         context.epc += 4;
+    } else {
+        panic!("unknown machine trap: mcause {}", mcause);
     }
 }
 
 #[no_mangle]
-pub extern "C" fn supervisor_trap_handler(_context: &mut Context) {
+pub extern "C" fn supervisor_trap_handler(context: &mut Context) {
     let scause = r_scause();
+    // println!("supervisor_trap_handler {} epc {:x}", scause, context.epc);
     const S_TIMER_INTERRUPT: u64 = (1 << 63) | 5;
     if scause == S_TIMER_INTERRUPT {
         unsafe {
-            println!("[S] Supervisor Mode Timer Interrupt {}", TICKS);
             TICKS += 1;
-            if TICKS >= 10 {
+            if TICKS >= 20 {
                 shut_down();
             }
+            SCHED.do_timer(context);
             w_sie(r_sie() & !SIE_STIE);
             llvm_asm!("ecall");
         }
+    } else {
+        panic!("unknown supervisor trap: scause {}", scause);
     }
 }
 

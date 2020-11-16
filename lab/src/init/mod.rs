@@ -1,11 +1,13 @@
 mod interrupt;
+mod sched;
 
 use crate::lib::*;
-use interrupt::timer_init;
+use interrupt::*;
+use sched::*;
 
-extern {
-    static bss_start:usize;
-    static bss_end:usize;
+extern "C" {
+    static bss_start: usize;
+    static bss_end: usize;
 }
 
 #[no_mangle]
@@ -29,7 +31,7 @@ pub extern "C" fn mmod_init() {
 
     unsafe {
         for bit in bss_start..bss_end {
-            *(bit as * mut u8) = 0;
+            *(bit as *mut u8) = 0;
         }
         llvm_asm!("mret");
     }
@@ -37,7 +39,8 @@ pub extern "C" fn mmod_init() {
 
 #[no_mangle]
 pub extern "C" fn start_kernel() {
+    println!("ZJU OS LAB 3             GROUP-01");
     interrupt::trap_init();
-    println!("ZJU OS LAB 2             GROUP-01");
+    SchedTest::task_init();
     loop {}
 }

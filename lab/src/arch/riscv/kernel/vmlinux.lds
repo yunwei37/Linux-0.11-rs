@@ -1,5 +1,6 @@
 ENTRY(_start)
 BASE_ADDRESS = 0x80000000;
+NR_TASKS = 5;
 SECTIONS
 {   
     . = BASE_ADDRESS;

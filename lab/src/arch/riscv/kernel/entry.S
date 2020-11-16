@@ -44,7 +44,6 @@ trap_s:
         sd t1,  256(sp)
 
         mv      a0, sp
-        addi    a0, a0, 248
 
         call supervisor_trap_handler
 
@@ -133,7 +132,6 @@ trap_m:
         sd t1,  256(sp)
 
         mv      a0, sp
-        addi    a0, a0, 248
 
         call machine_trap_handler
 
