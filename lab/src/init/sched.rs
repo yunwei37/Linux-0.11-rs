@@ -13,7 +13,7 @@ const THREAD_SIZE: usize = 0x1000;
 
 static TASK_SPACE_START: usize = 0x80010000;
 
-static mut SEED: u128 = 13;
+static mut SEED: u128 = 15;
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -139,12 +139,13 @@ impl SchedTest {
     fn priority_schedule(&mut self, current: &mut Context) {
         let mut min_id = 4;
         for id in (1..NR_TASKS).rev() {
-            if self.tasks[id].counter == 0 {
+            let task = &self.tasks[id];
+            if task.counter == 0 {
                 continue;
             }
-            if self.tasks[id].priority < self.tasks[min_id].priority
-                || (self.tasks[id].priority == self.tasks[min_id].priority
-                    && self.tasks[id].counter < self.tasks[min_id].counter)
+            if task.priority < self.tasks[min_id].priority
+                || (task.priority == self.tasks[min_id].priority
+                    && task.counter < self.tasks[min_id].counter)
             {
                 min_id = id;
             }
@@ -183,9 +184,10 @@ impl SchedTest {
         let mut min_id = 0;
         let mut min_counter = core::u64::MAX;
         for id in (1..NR_TASKS).rev() {
-            if self.tasks[id].counter != 0 && self.tasks[id].counter < min_counter {
+            let task = &self.tasks[id];
+            if task.counter != 0 && task.counter < min_counter {
                 min_id = id;
-                min_counter = self.tasks[id].counter;
+                min_counter = task.counter;
             }
         }
         if min_id != 0 {
@@ -211,8 +213,9 @@ impl SchedTest {
             self.tasks[next_id].priority,
             self.tasks[next_id].counter
         );
-        self.tasks[self.current_task_id].thread = current.regs.clone();
-        self.tasks[self.current_task_id].epc = current.epc;
+        let mut current_task = &mut self.tasks[self.current_task_id];
+        current_task.thread = current.regs.clone();
+        current_task.epc = current.epc;
         current.regs.ra = self.tasks[next_id].thread.ra;
         current.regs.sp = self.tasks[next_id].thread.sp;
         current.regs.regs = self.tasks[next_id].thread.regs;
@@ -222,6 +225,5 @@ impl SchedTest {
 }
 
 fn dead_loop() {
-    //println!("enter dead_loop");
     loop {}
 }
