@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+
 use super::interrupt::*;
 use oorandom;
 
@@ -11,7 +12,7 @@ const TASK_RUNNING: u64 = 0;
 
 const THREAD_SIZE: usize = 0x1000;
 
-static TASK_SPACE_START: usize = 0x80010000;
+static TASK_SPACE_START: usize = 0x80010000 + 0xffffffdf80000000;
 
 static mut SEED: u128 = 15;
 
@@ -207,11 +208,15 @@ impl SchedTest {
             return;
         }
         println!(
-            "[!] Switch from task {} to task {}, prio: {}, counter: {}",
-            self.current_task_id,
-            next_id,
-            self.tasks[next_id].priority,
-            self.tasks[next_id].counter
+                "[!] Switch from task {} [task struct: {:x}, sp: {:x}] to task {} [task struct: {:x}, sp: {:x}], prio: {}, counter: {}",
+                self.current_task_id,
+                &self.tasks[self.current_task_id] as *const TaskStruct as usize,
+                self.tasks[self.current_task_id].thread.sp,
+                next_id,
+                &self.tasks[next_id] as *const TaskStruct as usize,
+                self.tasks[next_id].thread.sp,
+                self.tasks[next_id].priority,
+                self.tasks[next_id].counter
         );
         let mut current_task = &mut self.tasks[self.current_task_id];
         current_task.thread = current.regs.clone();

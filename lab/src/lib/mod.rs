@@ -21,3 +21,11 @@ pub fn shut_down() {
         llvm_asm!("sh $0, 0($1)"::"r"(VIRT_TEST_FINISHER_PASS),"r"(SIFIVE_TEST));
     }
 }
+
+pub fn memset(start: usize, ch: u8, n: usize) {
+    unsafe {
+        for bit in start..start + n {
+            *(bit as *mut u8) = ch;
+        }
+    }
+}

@@ -1,8 +1,10 @@
 mod interrupt;
+mod page;
 mod sched;
 
 use crate::lib::*;
 use interrupt::*;
+use page::*;
 use sched::*;
 
 extern "C" {
@@ -30,17 +32,18 @@ pub extern "C" fn mmod_init() {
     timer_init();
 
     unsafe {
-        for bit in bss_start..bss_end {
-            *(bit as *mut u8) = 0;
-        }
+        let bss_starta = &bss_start as *const usize as usize;
+        let bss_enda = &bss_end as *const usize as usize;
+        memset(bss_starta, 0, bss_enda - bss_starta);
         llvm_asm!("mret");
     }
 }
 
 #[no_mangle]
 pub extern "C" fn start_kernel() {
-    println!("ZJU OS LAB 3             GROUP-01");
-    interrupt::trap_init();
+    paging_init();
+    println!("ZJU OS LAB 4             GROUP-01");
+    trap_init();
     SchedTest::task_init();
     loop {}
 }

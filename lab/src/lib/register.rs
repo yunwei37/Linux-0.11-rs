@@ -190,3 +190,10 @@ pub fn r_mcause() -> u64 {
     }
     x
 }
+
+#[inline]
+pub fn sfence_vma() {
+    unsafe {
+        llvm_asm!("sfence.vma zero, zero");
+    }
+}

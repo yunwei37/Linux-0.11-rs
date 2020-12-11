@@ -62,9 +62,6 @@ pub extern "C" fn supervisor_trap_handler(context: &mut Context) {
     if scause == S_TIMER_INTERRUPT {
         unsafe {
             TICKS += 1;
-            if TICKS >= 20 {
-                shut_down();
-            }
             SCHED.do_timer(context);
             w_sie(r_sie() & !SIE_STIE);
             llvm_asm!("ecall");

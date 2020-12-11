@@ -91,6 +91,7 @@ trap_s:
 .globl trap_m
 .align 4
 trap_m:
+        csrrw sp, mscratch, sp
         addi sp, sp, -272
 
         # save the registers.
@@ -173,5 +174,6 @@ trap_m:
         ld t6, 240(sp)
 
         addi sp, sp, 272
+        csrrw sp, mscratch, sp
 
         mret
