@@ -183,6 +183,15 @@ pub fn r_scause() -> u64 {
 }
 
 #[inline]
+pub fn r_stval() -> u64 {
+    let mut x: u64;
+    unsafe {
+        llvm_asm!("csrr $0, stval" : "=r" (x));
+    }
+    x
+}
+
+#[inline]
 pub fn r_mcause() -> u64 {
     let mut x: u64;
     unsafe {

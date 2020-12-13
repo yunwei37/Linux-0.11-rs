@@ -57,8 +57,14 @@ pub extern "C" fn machine_trap_handler(context: &mut Context) {
 #[no_mangle]
 pub extern "C" fn supervisor_trap_handler(context: &mut Context) {
     let scause = r_scause();
+    let stval = r_stval();
     // println!("supervisor_trap_handler {} epc {:x}", scause, context.epc);
     const S_TIMER_INTERRUPT: u64 = (1 << 63) | 5;
+    const ECALL_U: u64 = 8;
+    const ECALL_S: u64 = 9;
+    const INSTRUCTION_PGFAULT: u64 = 12;
+    const LOAD_PGFAULT: u64 = 13;
+    const STORE_PGFAULT: u64 = 15;
     if scause == S_TIMER_INTERRUPT {
         unsafe {
             TICKS += 1;
@@ -66,8 +72,24 @@ pub extern "C" fn supervisor_trap_handler(context: &mut Context) {
             w_sie(r_sie() & !SIE_STIE);
             llvm_asm!("ecall");
         }
+    } else if scause == ECALL_U {
+        println!("Environment call from U-mode: {}", stval);
+    } else if scause == ECALL_S {
+        println!("Environment call from S-mode: {}", stval);
+    } else if scause == INSTRUCTION_PGFAULT {
+        println!(
+            "Instruction page fault: faulting virtual address {:x}",
+            stval
+        );
+    } else if scause == LOAD_PGFAULT {
+        println!("Load page fault: faulting virtual address {:x}", stval);
+    } else if scause == STORE_PGFAULT {
+        println!("Store/AMO page fault: faulting virtual address {:x}", stval);
     } else {
-        panic!("unknown supervisor trap: scause {}", scause);
+        panic!(
+            "unknown supervisor trap: scause {} stval {:x}",
+            scause, stval
+        );
     }
 }
 

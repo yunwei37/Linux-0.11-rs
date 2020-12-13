@@ -1,8 +1,18 @@
+#![allow(dead_code)]
+
 use crate::lib::*;
 
 extern "C" {
     static _end: usize;
     static init_stack_top: usize;
+    static text_start: usize;
+    static text_end: usize;
+    static rodata_start: usize;
+    static rodata_end: usize;
+    static data_start: usize;
+    static data_end: usize;
+    static bss_start: usize;
+    static bss_end: usize;
 }
 
 pub const PGSIZE: usize = 4096; // bytes per page
@@ -40,18 +50,26 @@ macro_rules! PA2PTE {
     };
 }
 
+macro_rules! PGROUNDUP {
+    ($sz:expr) => {
+        ((($sz) + PGSIZE - 1) & !(PGSIZE - 1))
+    };
+}
+
 pub static mut KERNEL_PTE: usize = 0;
-pub static mut MEMORY_END: usize = 0;
+pub static mut KERNEL_END: usize = 0;
+pub static mut INIT_STACK_TOP_ADDR: usize = 0;
 
 pub const KERNEL_STARTPA: usize = 0x80000000;
 pub const KERNEL_STARTVA: usize = 0xffffffe000000000;
+pub const KERNEL_PVDIFF: usize = 0xffffffe000000000 - 0x80000000;
 pub const UART0: usize = 0x10000000;
 
 fn ppage_alloc() -> usize {
     unsafe {
-        assert!(MEMORY_END % PGSIZE == 0);
-        let last_end = MEMORY_END;
-        MEMORY_END += PGSIZE;
+        assert!(KERNEL_END % PGSIZE == 0);
+        let last_end = KERNEL_END;
+        KERNEL_END += PGSIZE;
         memset(last_end, 0, PGSIZE);
         last_end
     }
@@ -98,31 +116,56 @@ fn create_mapping(pgtble: usize, va: usize, pa: usize, size: usize, perm: usize)
 
 pub fn paging_init() {
     unsafe {
-        MEMORY_END = &_end as *const usize as usize;
-    }
-    let kernel_pg = ppage_alloc();
-    unsafe {
+        INIT_STACK_TOP_ADDR = &init_stack_top as *const usize as usize;
+        KERNEL_END = &_end as *const usize as usize;
+        let text_startp = &text_start as *const usize as usize;
+        let text_endp = &text_end as *const usize as usize;
+        let rodata_startp = &rodata_start as *const usize as usize;
+        let rodata_endp = &rodata_end as *const usize as usize;
+        let data_startp = &data_start as *const usize as usize;
+        let kernel_pg = ppage_alloc();
         KERNEL_PTE = kernel_pg;
-    }
-    create_mapping(
-        kernel_pg,
-        KERNEL_STARTPA,
-        KERNEL_STARTPA,
-        1024 * 16 * PGSIZE,
-        PTE_R | PTE_W | PTE_X,
-    );
-    create_mapping(
-        kernel_pg,
-        KERNEL_STARTVA,
-        KERNEL_STARTPA,
-        1024 * 16 * PGSIZE,
-        PTE_R | PTE_W | PTE_X,
-    );
-    create_mapping(kernel_pg, UART0, UART0, PGSIZE, PTE_R | PTE_W);
-    w_satp((SATP_SV39 | ((kernel_pg) >> 12)) as u64);
-    sfence_vma();
-    unsafe {
-        asm!("ld ra, 40(sp)");
+        create_mapping(
+            kernel_pg,
+            KERNEL_STARTPA,
+            KERNEL_STARTPA,
+            1024 * 16 * PGSIZE,
+            PTE_R | PTE_W | PTE_X,
+        );
+        create_mapping(
+            kernel_pg,
+            text_startp + KERNEL_PVDIFF,
+            text_startp,
+            PGROUNDUP!(text_endp - text_startp),
+            PTE_R | PTE_X,
+        );
+        create_mapping(
+            kernel_pg,
+            rodata_startp + KERNEL_PVDIFF,
+            rodata_startp,
+            PGROUNDUP!(rodata_endp - rodata_startp),
+            PTE_R,
+        );
+        create_mapping(
+            kernel_pg,
+            data_startp + KERNEL_PVDIFF,
+            data_startp,
+            1024 * 16 * PGSIZE + KERNEL_STARTPA - data_startp,
+            PTE_R | PTE_W,
+        );
+        /*
+        create_mapping(
+            kernel_pg,
+            KERNEL_STARTVA,
+            KERNEL_STARTPA,
+            1024 * 16 * PGSIZE,
+            PTE_R | PTE_W | PTE_X,
+        );
+        */
+        create_mapping(kernel_pg, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+        w_satp((SATP_SV39 | ((kernel_pg) >> 12)) as u64);
+        sfence_vma();
+        asm!("ld ra, 168(sp)");
         asm!("add sp, sp, a0");
         asm!("li a0, 0xffffffdf80000000");
         asm!("la sp, init_stack_top");

@@ -23,8 +23,8 @@ pub extern "C" fn mmod_init() {
 
     w_satp(0);
 
-    w_medeleg(0x00f0);
-    w_mideleg(0x00f0);
+    w_medeleg(0xf0ff);
+    w_mideleg(0xf0ff);
     w_sie(r_sie() | SIE_SEIE | SIE_SSIE);
 
     w_mie(r_mie() | MIE_MTIE);
@@ -45,5 +45,6 @@ pub extern "C" fn start_kernel() {
     println!("ZJU OS LAB 4             GROUP-01");
     trap_init();
     SchedTest::task_init();
+    //unsafe{asm!("ld a0, 123(x0)");}
     loop {}
 }

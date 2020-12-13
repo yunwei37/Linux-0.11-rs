@@ -2,6 +2,7 @@
 #![allow(unused_variables)]
 
 use super::interrupt::*;
+use super::page::*;
 use oorandom;
 
 /// task的最大数量
@@ -85,6 +86,10 @@ impl SchedTest {
 
     pub fn task_init() {
         println!("task init...");
+        unsafe {
+            SCHED.tasks[SCHED.current_task_id].thread.sp =
+                (INIT_STACK_TOP_ADDR + KERNEL_PVDIFF) as u64;
+        }
         #[cfg(feature = "short_job_first")]
         SchedTest::short_job_first_init();
         #[cfg(feature = "priority")]
